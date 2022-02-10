@@ -2,6 +2,8 @@
 #define MESH_H
 
 #include <QGLWidget> //UpgradeQt6: #include <QOpenGLWidget>
+#include<QString>
+#include <unordered_map>
 
 // TO MODIFY
 class Point
@@ -23,6 +25,8 @@ class Vertice
 public:
     Point point;
     int index;
+    bool has_face = false;
+    int face_index;
 
     Vertice();
     ~Vertice();
@@ -32,6 +36,7 @@ class Face
 {
 public:
     int vertice_indexes[3];
+    int face_indexes[3];
 
     Face();
     ~Face();
@@ -45,6 +50,7 @@ class Mesh
 public:
     std::vector<Vertice> vertices;
     std::vector<Face> faces;
+    std::unordered_map<QString, int> face_map_queue;
     Mesh(); // Constructors automatically called to initialize a Mesh (default strategy)
     ~Mesh(); // Destructor automatically called before a Mesh is destroyed (default strategy)
     //void drawMesh();

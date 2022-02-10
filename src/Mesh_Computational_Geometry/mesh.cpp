@@ -62,8 +62,6 @@ void GeometricWorld::draw() {
     glPointDraw(_bBox[3]);
     glPointDraw(_bBox[1]);
     glEnd();
-
-    //glColor3d(1,1,0);
 }
 
 void GeometricWorld::drawMesh() {
@@ -148,15 +146,112 @@ void GeometricWorld::input(QString line) {
             vertice.index = line_index;
             _mesh.vertices.push_back(vertice);
         } else if (line_index - nb_vertices < nb_faces) {
+            // Read always in the same order -> 0, 1, 2
             Face face = Face();
             face.vertice_indexes[0] = splitted_line[1].toInt();
+            // Data structure - Store ONE Face in each Vertice
+            // Data structure - Store ADJACENT Vertives in each Face
+            if (!_mesh.vertices[face.vertice_indexes[0]].has_face) {
+                _mesh.vertices[face.vertice_indexes[0]].has_face = true;
+                _mesh.vertices[face.vertice_indexes[0]].face_index = line_index - nb_vertices;
+            }
             face.vertice_indexes[1] = splitted_line[2].toInt();
+            if (!_mesh.vertices[face.vertice_indexes[1]].has_face) {
+                _mesh.vertices[face.vertice_indexes[1]].has_face = true;
+                _mesh.vertices[face.vertice_indexes[1]].face_index = line_index - nb_vertices;
+            }
             face.vertice_indexes[2] = splitted_line[3].toInt();
+            if (!_mesh.vertices[face.vertice_indexes[2]].has_face) {
+                _mesh.vertices[face.vertice_indexes[2]].has_face = true;
+                _mesh.vertices[face.vertice_indexes[2]].face_index = line_index - nb_vertices;
+            }
+
+            // Data structure - Store ADJACENT Faces in each Face
+            // - (quick) Sort indexes to create key search
+            int i0 = face.vertice_indexes[0];
+            int i1 = face.vertice_indexes[1];
+            int i2 = face.vertice_indexes[2];
+            if (i0 > i1) {
+                int ic = i1;
+                i1 = i2;
+                i2 = ic;
+            }
+            if (i2 < i0) {
+                int ic = i2;
+                i2 = i0;
+                i0 = ic;
+
+                ic = i2;
+                i2 = i1;
+                i1 = ic;
+            } else if (i2 < i1) {
+                int ic = i2;
+                i2 = i1;
+                i1 = ic;
+            }
+            QString key0 = QString("%1.%2").arg(i1).arg(i2);
+            QString key1 = QString("%1.%2").arg(i0).arg(i2);
+            QString key2 = QString("%1.%2").arg(i0).arg(i1);
+
+            // ===== ===== =====
+            // Debug
+            if (line_index - nb_vertices < 2) {
+                qDebug()  << QString("Faces: %1").arg(line_index - nb_vertices);
+                qDebug()  << QString("<%1> - <%2> - <%3>").arg(i0).arg(i1).arg(i2);
+                qDebug()  << QString("Key1: <%1>").arg(key0);
+                qDebug()  << QString("Key2: <%1>").arg(key1);
+                qDebug()  << QString("Key3: <%1>").arg(key2);
+            }
+
+            if (key0 == QString("8463.14979") || key1 == QString("8463.14979") || key2 == QString("8463.14979")) {
+                qDebug()  << QString("Key <8463.14979> at: %1").arg(line_index - nb_vertices);
+            }
+            // ===== ===== =====
+            if (_mesh.face_map_queue.find(key0) == _mesh.face_map_queue.end()) {
+                _mesh.face_map_queue[key0] = line_index - nb_vertices;
+            } else {
+                if (_mesh.face_map_queue[key0] == -1) {
+                    qDebug() << QString("More than two faces at <%1>, problem with face <%2>").arg(_mesh.face_map_queue[key0]).arg(line_index - nb_vertices);
+                }
+                // Set faces
+//                face.face_indexes[0] = _mesh.face_map_queue[key0];
+
+                // found, should be changed only once, used to detect error in mesh
+                // (could have erase instead, but no error detection)
+                _mesh.face_map_queue[key0] = -1;
+            }
+
+            if (_mesh.face_map_queue.find(key1) == _mesh.face_map_queue.end()) {
+                _mesh.face_map_queue[key1] = line_index - nb_vertices;
+            } else {
+                if (_mesh.face_map_queue[key1] == -1) {
+                    qDebug() << QString("More than two faces at <%1>, problem with face <%2>").arg(_mesh.face_map_queue[key1]).arg(line_index - nb_vertices);
+                }
+                // Set faces
+//                face.face_indexes[1] = _mesh.face_map_queue[key1];
+
+                // found, should be changed only once, used to detect error in mesh
+                // (could have erase instead, but no error detection)
+                _mesh.face_map_queue[key1] = -1;
+            }
+
+            if (_mesh.face_map_queue.find(key2) == _mesh.face_map_queue.end()) {
+                _mesh.face_map_queue[key2] = line_index - nb_vertices;
+            } else {
+                if (_mesh.face_map_queue[key2] == -1) {
+                    qDebug() << QString("More than two faces at <%1>, problem with face <%2>").arg(_mesh.face_map_queue[key2]).arg(line_index - nb_vertices);
+                }
+                // Set faces
+//                face.face_indexes[2] = _mesh.face_map_queue[key2];
+
+                // found, should be changed only once, used to detect error in mesh
+                // (could have erase instead, but no error detection)
+                _mesh.face_map_queue[key2] = -1;
+            }
+
             _mesh.faces.push_back(face);
         } else {
-            qDebug() << "Line out of bound";
-            qDebug() << line_index;
-            qDebug() << splitted_line;
+            qDebug() << QString("Line %1 out of bound: <%2>").arg(line_index).arg(line);
         }
         line_index += 1;
     }
