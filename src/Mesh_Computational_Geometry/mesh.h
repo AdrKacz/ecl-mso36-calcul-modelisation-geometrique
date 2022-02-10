@@ -15,6 +15,16 @@ public:
 
     Point():_x(),_y(),_z() {}
     Point(float x_, float y_, float z_):_x(x_),_y(y_),_z(z_) {}
+
+    Point operator-(const Point&) const;
+
+    Point cross(const Point&);
+
+    double norm() const;
+    double norm2() const;
+    Point normalized();
+
+    QString to_qstring() const;
 };
 
 
@@ -28,6 +38,8 @@ public:
     bool has_face = false;
     int face_index;
 
+    Point normal;
+
     Vertice();
     ~Vertice();
 };
@@ -37,6 +49,10 @@ class Face
 public:
     int vertice_indexes[3];
     int face_indexes[3];
+
+    Point normal;
+
+    void debug(int);
 
     Face();
     ~Face();
@@ -50,11 +66,17 @@ class Mesh
 public:
     std::vector<Vertice> vertices;
     std::vector<Face> faces;
-    std::unordered_map<QString, int> face_map_queue;
+    std::unordered_map<QString, QString> face_map_queue;
     Mesh(); // Constructors automatically called to initialize a Mesh (default strategy)
     ~Mesh(); // Destructor automatically called before a Mesh is destroyed (default strategy)
     //void drawMesh();
     //void drawMeshWireFrame();
+
+    // Create mesh Data Structure Helper
+    void verify_key(QString, int, int);
+    // Compute normal and variation
+    void compute_vertices_normal();
+    void compute_vertices_laplacian();
 };
 
 class GeometricWorld //Here used to create a singleton instance
