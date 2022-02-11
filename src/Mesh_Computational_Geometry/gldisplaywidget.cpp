@@ -46,7 +46,7 @@ void GLDisplayWidget::paintGL(){
     glRotatef(_angle, 1.0f, 1.0f, 0.0f);
 
     // Color for your _geomWorld
-    glColor3f(0, 1 ,0);
+//    glColor3f(0, 1 ,0);
 
     // example with a tetraedre
 //    _geomWorld.drawWireFrame();
@@ -97,16 +97,23 @@ void GLDisplayWidget::wheelEvent(QWheelEvent *event) {
     }
 }
 
-void GLDisplayWidget::zoomIn() {
+void GLDisplayWidget::zoom_in() {
     double stepZoom = 2.5;
     _Z = _Z + stepZoom;
 }
 
-void GLDisplayWidget::zoomOut() {
+void GLDisplayWidget::zoom_out() {
     double stepZoom = 2.5;
     _Z = _Z - stepZoom;
 }
 
+void GLDisplayWidget::set_norm_factor(double d) {
+    _geomWorld.set_norm_factor(d);
+}
+
+void GLDisplayWidget::set_use_face_color(bool d) {
+    _geomWorld.set_use_face_color(d);
+}
 
 // Getter
 

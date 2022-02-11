@@ -34,6 +34,32 @@
        </widget>
       </item>
       <item>
+       <widget class="QPushButton" name="colorButton">
+        <property name="text">
+         <string>Vertices</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QSlider" name="colorSlider">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="minimum">
+         <number>1</number>
+        </property>
+        <property name="maximum">
+         <number>100</number>
+        </property>
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+       </widget>
+      </item>
+      <item>
        <widget class="QPushButton" name="zoomInButton">
         <property name="text">
          <string>Zoom in</string>

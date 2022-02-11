@@ -17,8 +17,11 @@ private slots:
     void on_loadFileButton_released();
     void on_zoomInButton_released();
     void on_zoomOutButton_released();
+    void on_colorButton_released();
+    void on_colorSlider_valueChanged();
 
 private:
+    bool colorButton_faces = true;
     Ui::MainWindow *ui;
 };
 

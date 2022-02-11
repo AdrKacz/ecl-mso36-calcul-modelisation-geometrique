@@ -5,6 +5,7 @@
 
 #include<QFile>
 #include<QDebug>
+#include<QString>
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -43,10 +44,24 @@ void MainWindow::on_loadFileButton_released()
 }
 
 void MainWindow::on_zoomInButton_released() {
-     ui->widget->zoomIn();
+     ui->widget->zoom_in();
 }
 
 void MainWindow::on_zoomOutButton_released() {
-     ui->widget->zoomOut();
+     ui->widget->zoom_out();
+}
+
+void MainWindow::on_colorButton_released() {
+    if (colorButton_faces) {
+        ui->colorButton->setText("Faces");
+    } else {
+        ui->colorButton->setText("Vertices");
+    }
+    colorButton_faces = !colorButton_faces;
+    ui->widget->set_use_face_color(colorButton_faces);
+}
+
+void MainWindow::on_colorSlider_valueChanged() {
+    ui->widget->set_norm_factor(ui->colorSlider->value());
 }
 

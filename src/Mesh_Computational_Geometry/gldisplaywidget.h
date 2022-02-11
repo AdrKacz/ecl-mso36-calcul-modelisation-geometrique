@@ -20,8 +20,10 @@ public:
     void resizeGL(int width, int height);
 
     GeometricWorld getGeomWorld();
-    void zoomIn();
-    void zoomOut();
+    void zoom_in();
+    void zoom_out();
+    void set_norm_factor(double);
+    void set_use_face_color(bool);
 protected:
     // Mouse Management
     void mousePressEvent(QMouseEvent *event);

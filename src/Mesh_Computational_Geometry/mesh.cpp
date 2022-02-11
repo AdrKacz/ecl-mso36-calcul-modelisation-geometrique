@@ -31,8 +31,12 @@ GeometricWorld::GeometricWorld()
     _bBox.push_back(Point(0.0, -1.0*depth, 0.0)); // 2
     _bBox.push_back(Point(0.0, 0.0, 1.0*height)); // 3
     loadFile();
-    _mesh.faces[0].debug(0);
-    _mesh.faces[34577].debug(34577);
+//    _mesh.faces[0].debug(0);
+//    _mesh.faces[34577].debug(34577);
+    _mesh.compute_vertices_normal();
+    _mesh.compute_vertices_laplacian();
+
+    _mesh.compute_faces_laplacian();
 }
 
 // The following functions could be displaced into a module OpenGLDisplayGeometricWorld that would include mesh.h
@@ -58,25 +62,51 @@ void GeometricWorld::draw() {
     glPointDraw(_bBox[3]);
     glEnd();
 
-    glColor3d(0,0,1);
+    // Easy peasy lemon squeezy, just define color for each vertexe
     glBegin(GL_TRIANGLES);
+    glColor3d(0,0,1);
     glPointDraw(_bBox[0]);
+    glColor3d(1,0,0);
     glPointDraw(_bBox[3]);
+    glColor3d(0,1,0);
     glPointDraw(_bBox[1]);
     glEnd();
+}
+
+Point Mesh::laplacian_norm_to_color(double laplacian_norm)
+{
+    double r = 0., g = .5, b = 1.;
+    double magnitude = laplacian_norm;
+    magnitude = faces_norm_factor * (magnitude * faces_inv_difference_laplacian_norm + faces_constance_term_laplacian_norm);
+    b -= std::min(1., magnitude);
+    r += std::min(1., magnitude - 1.);
+    return Point(r, g, b);
 }
 
 void GeometricWorld::drawMesh() {
     if (_mesh.faces.size() <= 0) {
         return;
     }
-    glColor3d(1,1,1);
     for (unsigned int i = 0 ; i < _mesh.faces.size() ; i++) {
-        glBegin(GL_TRIANGLES);
-        glPointDraw(_mesh.vertices[_mesh.faces[i].vertice_indexes[0]].point);
-        glPointDraw(_mesh.vertices[_mesh.faces[i].vertice_indexes[1]].point);
-        glPointDraw(_mesh.vertices[_mesh.faces[i].vertice_indexes[2]].point);
-        glEnd();
+        if (use_face_color) {
+            Point color = _mesh.laplacian_norm_to_color(_mesh.faces[i].laplacian_norm);
+            glColor3d(color._x, color._y, color._z);
+            glBegin(GL_TRIANGLES);
+            glPointDraw(_mesh.vertices[_mesh.faces[i].vertice_indexes[0]].point);
+            glPointDraw(_mesh.vertices[_mesh.faces[i].vertice_indexes[1]].point);
+            glPointDraw(_mesh.vertices[_mesh.faces[i].vertice_indexes[2]].point);
+            glEnd();
+        } else {
+            glBegin(GL_TRIANGLES);
+            for (unsigned int j = 0 ; j < 3 ; j++)
+            {
+                Point color = _mesh.laplacian_norm_to_color(_mesh.vertices[_mesh.faces[i].vertice_indexes[j]].laplacian_norm);
+                glColor3d(color._x, color._y, color._z);
+                glPointDraw(_mesh.vertices[_mesh.faces[i].vertice_indexes[j]].point);
+
+            }
+            glEnd();
+        }
     }
 }
 
@@ -232,6 +262,15 @@ void GeometricWorld::endInput() {
     qDebug() << nb_faces;
 }
 
+
+void GeometricWorld::set_norm_factor(double d) {
+    _mesh.faces_norm_factor = std::min(100., std::max(1., d));
+}
+
+void GeometricWorld::set_use_face_color(bool d) {
+    use_face_color = d;
+}
+
 // ===== ===== ===== ===== =====
 // ===== ===== ===== ===== ===== Point
 // ===== ===== ===== ===== =====
@@ -241,10 +280,24 @@ QString Point::to_qstring() const
     return QString("(%1, %2, %3)").arg(_x).arg(_y).arg(_z);
 }
 
+Point Point::operator+(const Point& p) const
+{
+    return Point(_x + p._x, _y + p._y, _z + p._z);
+}
+
 Point Point::operator-(const Point& p) const
 {
     return Point(_x - p._x, _y - p._y, _z - p._z);
+}
 
+Point Point::operator*(const double d) const
+{
+    return Point(_x * d, _y * d, _z * d);
+}
+
+Point Point::operator/(const double d) const
+{
+    return Point(_x / d, _y / d, _z / d);
 }
 
 Point Point::cross(const Point& p) {
@@ -284,10 +337,98 @@ void Face::debug(int index)
 
 void Mesh::compute_vertices_normal()
 {
+    // TODO: that can be done directly when reading the document
+    // No need to "turn around", just store the number of adjacent faces and the cumulative normal
+    for (unsigned int i = 0; i < vertices.size(); i++)
+    {
+        if (i != vertices[i].index)
+        {
+            qDebug() << QString("Error Index %1 instead of %2").arg(vertices[i].index).arg(i);
+        }
+        Point normal = Point();
+        unsigned int n = 0;
+        // Turn around vertice
+        int initial_face_index = vertices[i].face_index;
+        int current_face_index = initial_face_index;
+        do {
+            // Update normal
+            n += 1;
+            normal = normal + faces[current_face_index].normal;
+            // Get next vertices in faces
+            int next = 0;
+            while (i != faces[current_face_index].vertice_indexes[next]) {
+                next = (next + 1) % 3;
+            }
+            next = (next + 1) % 3;
+            // Get face
+            current_face_index = faces[current_face_index].face_indexes[next];
+        } while (current_face_index != initial_face_index);
 
+        // Set mean normal
+        normal = normal / n;
+        vertices[i].normal = normal;
+    }
+}
+
+void Mesh::compute_faces_laplacian()
+{
+    // All values are between 0. and 6.
+    faces_min_laplacian_norm = 6.;
+    faces_max_laplacian_norm = 0.;
+    for (unsigned int i = 0; i < faces.size(); i++)
+    {
+        Point laplacian = faces[i].normal * 3.;
+        for (unsigned int j = 0; j < 3; j++)
+        {
+            laplacian = laplacian - faces[faces[i].face_indexes[j]].normal;
+        }
+        laplacian = laplacian / 3;
+        faces[i].laplacian = laplacian;
+        faces[i].laplacian_norm = laplacian.norm();
+        faces_min_laplacian_norm = std::min(faces_min_laplacian_norm, faces[i].laplacian_norm);
+        faces_max_laplacian_norm = std::max(faces_max_laplacian_norm, faces[i].laplacian_norm);
+    }
+
+    faces_inv_difference_laplacian_norm = 1 / (faces_max_laplacian_norm - faces_min_laplacian_norm);
+    faces_constance_term_laplacian_norm = - faces_min_laplacian_norm * faces_inv_difference_laplacian_norm;
 }
 
 void Mesh::compute_vertices_laplacian()
 {
+    // All values are between 0. and 6.
+    vertices_min_laplacian_norm = 6.;
+    vertices_max_laplacian_norm = 0.;
+    for (unsigned int i = 0; i < vertices.size(); i++)
+    {
+        Point laplacian = Point(0., 0., 0.);
+        unsigned int n = 0;
+        // Turn around vertice
+        int initial_face_index = vertices[i].face_index;
+        int current_face_index = initial_face_index;
+        do {
+            // Get next vertices in faces
+            int next = 0;
+            while (i != faces[current_face_index].vertice_indexes[next]) {
+                next = (next + 1) % 3;
+            }
+            next = (next + 1) % 3;
+            // Update laplacian (using next vertice in face -> adjacent)
+            n += 1;
+            // TODO: add cot, should not be only the difference
+            laplacian = laplacian + (vertices[i].normal - vertices[faces[current_face_index].vertice_indexes[next]].normal) * 1;
+            // Get face
+            current_face_index = faces[current_face_index].face_indexes[next];
+        } while (current_face_index != initial_face_index);
 
+        // Mean
+        laplacian = laplacian / n;
+
+        vertices[i].laplacian = laplacian;
+        vertices[i].laplacian_norm = laplacian.norm();
+        vertices_min_laplacian_norm = std::min(vertices_min_laplacian_norm, vertices[i].laplacian_norm);
+        vertices_max_laplacian_norm = std::max(vertices_max_laplacian_norm, vertices[i].laplacian_norm);
+    }
+
+    faces_inv_difference_laplacian_norm = 1 / (faces_max_laplacian_norm - faces_min_laplacian_norm);
+    faces_constance_term_laplacian_norm = - faces_min_laplacian_norm * faces_inv_difference_laplacian_norm;
 }
