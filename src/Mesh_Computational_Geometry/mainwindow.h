@@ -18,6 +18,7 @@ private slots:
     void on_zoomInButton_released();
     void on_zoomOutButton_released();
     void on_colorButton_released();
+    void on_reduceMesh_released();
     void on_colorSlider_valueChanged();
 
 private:

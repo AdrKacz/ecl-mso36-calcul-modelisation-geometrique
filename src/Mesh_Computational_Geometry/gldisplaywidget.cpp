@@ -107,17 +107,3 @@ void GLDisplayWidget::zoom_out() {
     _Z = _Z - stepZoom;
 }
 
-void GLDisplayWidget::set_norm_factor(double d) {
-    _geomWorld.set_norm_factor(d);
-}
-
-void GLDisplayWidget::set_use_face_color(bool d) {
-    _geomWorld.set_use_face_color(d);
-}
-
-// Getter
-
-GeometricWorld GLDisplayWidget::getGeomWorld() {
-    return _geomWorld;
-}
-

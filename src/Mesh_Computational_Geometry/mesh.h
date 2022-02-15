@@ -56,6 +56,8 @@ public:
     unsigned int vertice_indexes[3];
     unsigned int face_indexes[3];
 
+    bool is_active = true;
+
     Point normal;
 
     Point laplacian;
@@ -65,6 +67,16 @@ public:
 
     Face();
     ~Face();
+};
+
+class Side
+{
+public:
+    static bool compare(const Side&, const Side&);
+
+    unsigned int vertice_index_in_face;
+    unsigned int face_index;
+    double squared_length;
 };
 
 class Mesh
@@ -84,6 +96,7 @@ public:
     double faces_inv_difference_laplacian_norm;
     double faces_constance_term_laplacian_norm;
 
+    std::vector<Side> sides;
     std::vector<Vertice> vertices;
     std::vector<Face> faces;
     std::unordered_map<QString, QString> face_map_queue;
@@ -100,6 +113,10 @@ public:
     void compute_vertices_laplacian();
 
     Point laplacian_norm_to_color(double);
+
+    // Space reduction
+    void reduce();
+    void collapse_edge(unsigned int);
 };
 
 class GeometricWorld //Here used to create a singleton instance
@@ -112,8 +129,9 @@ private:
   int nb_faces = 0;
   int line_index = 0;
   QVector<Point> _bBox;  // Bounding box
-  Mesh _mesh;
 public :
+  Mesh _mesh;
+
   GeometricWorld();
   void draw();
   void drawWireFrame();

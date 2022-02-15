@@ -88,6 +88,10 @@ void GeometricWorld::drawMesh() {
         return;
     }
     for (unsigned int i = 0 ; i < _mesh.faces.size() ; i++) {
+        if (!_mesh.faces[i].is_active)
+        {
+            continue;
+        }
         if (use_face_color) {
             Point color = _mesh.laplacian_norm_to_color(_mesh.faces[i].laplacian_norm);
             glColor3d(color._x, color._y, color._z);
@@ -160,6 +164,13 @@ void Mesh::verify_key(QString key, int f_index, int f_face) {
     QString f_info = QString("%1.%2").arg(f_index).arg(f_face);
     if (face_map_queue.find(key) == face_map_queue.end()) {
         face_map_queue[key] = f_info;
+
+        // Add side to sides vector
+        Side side = Side();
+        side.vertice_index_in_face = f_face;
+        side.face_index = f_index;
+        side.squared_length = (vertices[faces[f_index].vertice_indexes[(f_face + 1) % 3]].point - vertices[faces[f_index].vertice_indexes[(f_face + 2) % 3]].point).norm2();
+        sides.push_back(side);
     } else {
         if (face_map_queue[key] == "Done") {
             qDebug() << QString("More than two faces at <%1>, problem with face <%2>, at point <%3>").arg(face_map_queue[key]).arg(f_index).arg(f_face);
@@ -332,6 +343,15 @@ void Face::debug(int index)
 }
 
 // ===== ===== ===== ===== =====
+// ===== ===== ===== ===== ===== Side
+// ===== ===== ===== ===== =====
+
+bool Side::compare(const Side& a, const Side& b)
+{
+    return a.squared_length < b.squared_length;
+}
+
+// ===== ===== ===== ===== =====
 // ===== ===== ===== ===== ===== Mesh
 // ===== ===== ===== ===== =====
 
@@ -432,3 +452,98 @@ void Mesh::compute_vertices_laplacian()
     faces_inv_difference_laplacian_norm = 1 / (faces_max_laplacian_norm - faces_min_laplacian_norm);
     faces_constance_term_laplacian_norm = - faces_min_laplacian_norm * faces_inv_difference_laplacian_norm;
 }
+
+void first_n_sides(const std::vector<Side>& s, unsigned int n)
+{
+    for (unsigned int i = 0; i < n; i++)
+    {
+        qDebug() << QString("<%1> [Face: <%2> - Point: <%3>] - Squared Length: <%4>").arg(i).arg(s[i].face_index).arg(s[i].vertice_index_in_face).arg(s[i].squared_length);
+    }
+}
+
+void Mesh::reduce()
+{
+    qDebug() << QString("Number of sides to sort: <%1>").arg(sides.size());
+    first_n_sides(sides, 10);
+    // Sort all sides
+    std::sort(sides.begin(), sides.end(), Side::compare);
+    qDebug() << QString("-Sides- is sorted.");
+    first_n_sides(sides, 10);
+
+    for (unsigned int i = 0; i < 100000; i++)
+    {
+        collapse_edge(i);
+    }
+}
+
+void Mesh::collapse_edge(unsigned int side_index)
+{
+    // Define intersection vertice
+    Point from_point = vertices[faces[sides[side_index].face_index].vertice_indexes[(sides[side_index].vertice_index_in_face + 1) % 3]].point;
+    Point to_point = vertices[faces[sides[side_index].face_index].vertice_indexes[(sides[side_index].vertice_index_in_face + 2) % 3]].point;
+    Vertice intersect_vertice = Vertice();
+    intersect_vertice.point = (from_point + to_point) / 2;
+    intersect_vertice.index = vertices.size();
+    vertices.push_back(intersect_vertice);
+
+    // Collapsed faces
+    unsigned int face_index_a = sides[side_index].face_index;
+    unsigned int face_index_b = faces[face_index_a].face_indexes[sides[side_index].vertice_index_in_face];
+
+
+    // Adjacent faces of A
+    unsigned int face_index_a_plus = faces[face_index_a].face_indexes[(sides[side_index].vertice_index_in_face + 1) % 3];
+    unsigned int face_index_a_minus = faces[face_index_a].face_indexes[(sides[side_index].vertice_index_in_face + 2) % 3];
+
+    // Adjacent faces of B
+    unsigned int face_index_b_plus = faces[face_index_b].face_indexes[(sides[side_index].vertice_index_in_face + 1) % 3];
+    unsigned int face_index_b_minus = faces[face_index_b].face_indexes[(sides[side_index].vertice_index_in_face + 2) % 3];
+
+    // Desactive faces A and B
+    faces[face_index_a].is_active = false;
+    faces[face_index_b].is_active = false;
+
+    // Remake connections faces - a_plus with a_minus
+    unsigned int a_plus_to_a = 0;
+    unsigned int a_minus_to_a = 0;
+    while (faces[face_index_a_plus].face_indexes[a_plus_to_a] != face_index_a)
+    {
+        a_plus_to_a += 1;
+    }
+    while (faces[face_index_a_minus].face_indexes[a_minus_to_a] != face_index_a)
+    {
+        a_minus_to_a += 1;
+    }
+
+//    faces[face_index_a_plus].face_indexes[a_plus_to_a] = face_index_a_minus;
+//    faces[face_index_a_minus].face_indexes[a_minus_to_a] = face_index_a_plus;
+
+    // Remake connections faces - b_plus with b_minus
+    unsigned int b_plus_to_b = 0;
+    unsigned int b_minus_to_b = 0;
+    while (faces[face_index_b_plus].face_indexes[b_plus_to_b] != face_index_b)
+    {
+        b_plus_to_b += 1;
+    }
+    while (faces[face_index_b_minus].face_indexes[b_minus_to_b] != face_index_b)
+    {
+        b_minus_to_b += 1;
+    }
+
+//    faces[face_index_b_plus].face_indexes[b_plus_to_b] = face_index_b_minus;
+//    faces[face_index_b_minus].face_indexes[b_minus_to_b] = face_index_b_plus;
+
+    // Connect to intersect point
+//    unsigned int a_plus_to_p = 0;
+//    unsigned int a_minus_to_p = 0;
+//    while (faces[face_index_a_plus].face_indexes[a_plus_to_a] != face_index_a)
+//    {
+//        a_plus_to_a += 1;
+//    }
+//    while (faces[face_index_a_minus].face_indexes[a_minus_to_a] != face_index_a)
+//    {
+//        a_minus_to_a += 1;
+//    }
+
+}
+

@@ -19,11 +19,10 @@ public:
     void paintGL(); // Display the scene Gl
     void resizeGL(int width, int height);
 
-    GeometricWorld getGeomWorld();
     void zoom_in();
     void zoom_out();
-    void set_norm_factor(double);
-    void set_use_face_color(bool);
+
+    GeometricWorld _geomWorld; // The scene to be displayed
 protected:
     // Mouse Management
     void mousePressEvent(QMouseEvent *event);
@@ -35,8 +34,6 @@ private:
     float _angle; // Rotation
 
     QPoint _lastPosMouse; // To keep the last position of the mouse
-
-    GeometricWorld _geomWorld; // The scene to be displayed
 };
 
 #endif // GLDISPLAYWIDGET_H

@@ -34,6 +34,13 @@
        </widget>
       </item>
       <item>
+       <widget class="QPushButton" name="reduceMesh">
+        <property name="text">
+         <string>Reduce</string>
+        </property>
+       </widget>
+      </item>
+      <item>
        <widget class="QPushButton" name="colorButton">
         <property name="text">
          <string>Vertices</string>
