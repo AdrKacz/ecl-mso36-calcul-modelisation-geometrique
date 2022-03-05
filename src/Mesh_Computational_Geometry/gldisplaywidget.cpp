@@ -43,7 +43,8 @@ void GLDisplayWidget::paintGL(){
     glTranslated(_X, _Y, _Z);
 
     // Rotation
-    glRotatef(_angle, 1.0f, 1.0f, 0.0f);
+    glRotatef(_angle_x, 0.0f, 1.0f, 0.0f);
+    glRotatef(_angle_y, 1.0f, 0.0f, 0.0f);
 
     // Color for your _geomWorld
 //    glColor3f(0, 1 ,0);
@@ -76,11 +77,12 @@ void GLDisplayWidget::mousePressEvent(QMouseEvent *event)
 void GLDisplayWidget::mouseMoveEvent(QMouseEvent *event)
 {
     int dx = event->x() - _lastPosMouse.x();
-    // int dy = event->y() - lastPosMouse.y();
+    int dy = event->y() - _lastPosMouse.y();
 
     if( event != NULL )
     {
-        _angle += dx;
+        _angle_x += dx;
+        _angle_y += dy;
         _lastPosMouse = event->pos();
 
         updateGL(); //UpgradeQt6: update();

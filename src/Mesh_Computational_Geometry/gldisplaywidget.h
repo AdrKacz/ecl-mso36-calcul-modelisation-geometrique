@@ -32,6 +32,8 @@ private:
     QTimer _timer; // To update the scene
     float _X, _Y ,_Z; // Translation
     float _angle; // Rotation
+    float _angle_x = 0.0f; // Rotation
+    float _angle_y = 0.0f; // Rotation
 
     QPoint _lastPosMouse; // To keep the last position of the mouse
 };

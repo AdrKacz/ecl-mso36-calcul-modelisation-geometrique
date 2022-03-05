@@ -1,5 +1,8 @@
 #include "mesh.h"
 
+// DEBUG
+#define FIXED_SIDES_TO_REMOVE 1
+
 //#include<QDir>
 //qDebug() << QDir::current();
 #include<QDebug>
@@ -35,7 +38,6 @@ GeometricWorld::GeometricWorld()
 //    _mesh.faces[34577].debug(34577);
     _mesh.compute_vertices_normal();
     _mesh.compute_vertices_laplacian();
-
     _mesh.compute_faces_laplacian();
 }
 
@@ -92,24 +94,43 @@ void GeometricWorld::drawMesh() {
         {
             continue;
         }
-        if (use_face_color) {
-            Point color = _mesh.laplacian_norm_to_color(_mesh.faces[i].laplacian_norm);
-            glColor3d(color._x, color._y, color._z);
+        if (!_mesh.vertices[_mesh.faces[i].vertice_indexes[0]].is_active) {
+            qDebug() << QString("Use a disable vertice");
+        }
+        if (!_mesh.vertices[_mesh.faces[i].vertice_indexes[1]].is_active) {
+            qDebug() << QString("Use a disable vertice");
+        }
+        if (!_mesh.vertices[_mesh.faces[i].vertice_indexes[2]].is_active) {
+            qDebug() << QString("Use a disable vertice");
+        }
+
+        if (true) {
+            glColor3d(1, 1, 1);
             glBegin(GL_TRIANGLES);
             glPointDraw(_mesh.vertices[_mesh.faces[i].vertice_indexes[0]].point);
             glPointDraw(_mesh.vertices[_mesh.faces[i].vertice_indexes[1]].point);
             glPointDraw(_mesh.vertices[_mesh.faces[i].vertice_indexes[2]].point);
             glEnd();
         } else {
-            glBegin(GL_TRIANGLES);
-            for (unsigned int j = 0 ; j < 3 ; j++)
-            {
-                Point color = _mesh.laplacian_norm_to_color(_mesh.vertices[_mesh.faces[i].vertice_indexes[j]].laplacian_norm);
+            if (use_face_color) {
+                Point color = _mesh.laplacian_norm_to_color(_mesh.faces[i].laplacian_norm);
                 glColor3d(color._x, color._y, color._z);
-                glPointDraw(_mesh.vertices[_mesh.faces[i].vertice_indexes[j]].point);
+                glBegin(GL_TRIANGLES);
+                glPointDraw(_mesh.vertices[_mesh.faces[i].vertice_indexes[0]].point);
+                glPointDraw(_mesh.vertices[_mesh.faces[i].vertice_indexes[1]].point);
+                glPointDraw(_mesh.vertices[_mesh.faces[i].vertice_indexes[2]].point);
+                glEnd();
+            } else {
+                glBegin(GL_TRIANGLES);
+                for (unsigned int j = 0 ; j < 3 ; j++)
+                {
+                    Point color = _mesh.laplacian_norm_to_color(_mesh.vertices[_mesh.faces[i].vertice_indexes[j]].laplacian_norm);
+                    glColor3d(color._x, color._y, color._z);
+                    glPointDraw(_mesh.vertices[_mesh.faces[i].vertice_indexes[j]].point);
 
+                }
+                glEnd();
             }
-            glEnd();
         }
     }
 }
@@ -164,13 +185,6 @@ void Mesh::verify_key(QString key, int f_index, int f_face) {
     QString f_info = QString("%1.%2").arg(f_index).arg(f_face);
     if (face_map_queue.find(key) == face_map_queue.end()) {
         face_map_queue[key] = f_info;
-
-        // Add side to sides vector
-        Side side = Side();
-        side.vertice_index_in_face = f_face;
-        side.face_index = f_index;
-        side.squared_length = (vertices[faces[f_index].vertice_indexes[(f_face + 1) % 3]].point - vertices[faces[f_index].vertice_indexes[(f_face + 2) % 3]].point).norm2();
-        sides.push_back(side);
     } else {
         if (face_map_queue[key] == "Done") {
             qDebug() << QString("More than two faces at <%1>, problem with face <%2>, at point <%3>").arg(face_map_queue[key]).arg(f_index).arg(f_face);
@@ -186,6 +200,15 @@ void Mesh::verify_key(QString key, int f_index, int f_face) {
         // found, should be changed only once, used to detect error in mesh
         // (could have erase instead, but no error detection)
         face_map_queue[key] = "Done";
+
+        // Add side (with the 2 faces informations
+        Side side = Side();
+        side.vertice_index_in_face_a = f_face;
+        side.face_a_index = f_index;
+        side.vertice_index_in_face_b = adj_f_face;
+        side.face_b_index = adj_f_index;
+        side.squared_length = (vertices[faces[f_index].vertice_indexes[(f_face + 1) % 3]].point - vertices[faces[f_index].vertice_indexes[(f_face + 2) % 3]].point).norm2();
+        sides.push_back(side);
     }
 }
 
@@ -215,9 +238,8 @@ void GeometricWorld::input(QString line) {
             Face face = Face();
             int index = line_index - nb_vertices;
 
-            face.vertice_indexes[0] = splitted_line[1].toInt();
             // Data structure - Store ONE Face in each Vertice
-            // Data structure - Store ADJACENT Vertives in each Face
+            face.vertice_indexes[0] = splitted_line[1].toInt();
             if (!_mesh.vertices[face.vertice_indexes[0]].has_face) {
                 _mesh.vertices[face.vertice_indexes[0]].has_face = true;
                 _mesh.vertices[face.vertice_indexes[0]].face_index = index;
@@ -336,9 +358,9 @@ void Face::debug(int index)
 {
     qDebug() << "---";
     qDebug() << QString("Face <%1>").arg(index);
-    qDebug() << QString("Normal:   %1").arg(normal.to_qstring());
-    qDebug() << QString("Vertices: (%1, %2, %3)").arg(vertice_indexes[0]).arg(vertice_indexes[1]).arg(vertice_indexes[2]);
-    qDebug() << QString("Face:     (%4, %5, %6)").arg(face_indexes[0]).arg(face_indexes[1]).arg(face_indexes[2]);
+    qDebug() << QString("Normal:      %1").arg(normal.to_qstring());
+    qDebug() << QString("Vertices:    (%1, %2, %3)").arg(vertice_indexes[0]).arg(vertice_indexes[1]).arg(vertice_indexes[2]);
+    qDebug() << QString("Face around: (%1, %2, %3)").arg(face_indexes[0]).arg(face_indexes[1]).arg(face_indexes[2]);
     qDebug() << "---";
 }
 
@@ -359,8 +381,13 @@ void Mesh::compute_vertices_normal()
 {
     // TODO: that can be done directly when reading the document
     // No need to "turn around", just store the number of adjacent faces and the cumulative normal
+    qDebug() << QString("=== === === === ===");
+    qDebug() << QString("Compute vertices normal, from 0 to %1").arg(vertices.size());
     for (unsigned int i = 0; i < vertices.size(); i++)
     {
+        if (!vertices[i].is_active) {
+            continue;
+        }
         if (i != vertices[i].index)
         {
             qDebug() << QString("Error Index %1 instead of %2").arg(vertices[i].index).arg(i);
@@ -457,7 +484,7 @@ void first_n_sides(const std::vector<Side>& s, unsigned int n)
 {
     for (unsigned int i = 0; i < n; i++)
     {
-        qDebug() << QString("<%1> [Face: <%2> - Point: <%3>] - Squared Length: <%4>").arg(i).arg(s[i].face_index).arg(s[i].vertice_index_in_face).arg(s[i].squared_length);
+        qDebug() << QString("<%1> [Between Face: <%2> - Face: <%3>] - Squared Length: <%4>").arg(i).arg(s[i].face_a_index).arg(s[i].face_b_index).arg(s[i].squared_length);
     }
 }
 
@@ -470,38 +497,110 @@ void Mesh::reduce()
     qDebug() << QString("-Sides- is sorted.");
     first_n_sides(sides, 10);
 
-    for (unsigned int i = 0; i < 100000; i++)
+    const unsigned int collapsed_edges = sides.size() * .1;
+    qDebug() << QString("Edge to collapse: %1").arg(collapsed_edges);
+    for (unsigned int i = 0; i < 1; i++)
     {
         collapse_edge(i);
     }
+
+    // Recompute adjacent (could have done only adjacent)
+    compute_vertices_normal();
+//    compute_vertices_laplacian();
+//    compute_faces_laplacian();
 }
 
 void Mesh::collapse_edge(unsigned int side_index)
 {
-    // Define intersection vertice
-    Point from_point = vertices[faces[sides[side_index].face_index].vertice_indexes[(sides[side_index].vertice_index_in_face + 1) % 3]].point;
-    Point to_point = vertices[faces[sides[side_index].face_index].vertice_indexes[(sides[side_index].vertice_index_in_face + 2) % 3]].point;
-    Vertice intersect_vertice = Vertice();
-    intersect_vertice.point = (from_point + to_point) / 2;
-    intersect_vertice.index = vertices.size();
-    vertices.push_back(intersect_vertice);
+    // Note collapsed faces
+    unsigned int face_index_a = sides[side_index].face_a_index;
+    unsigned int face_index_b = sides[side_index].face_b_index;
 
-    // Collapsed faces
-    unsigned int face_index_a = sides[side_index].face_index;
-    unsigned int face_index_b = faces[face_index_a].face_indexes[sides[side_index].vertice_index_in_face];
-
+    // DEBUG (to find other way)
+    // Skip if one of the face already disabled
+    if (!faces[face_index_a].is_active || !faces[face_index_b].is_active) {
+        return;
+    }
 
     // Adjacent faces of A
-    unsigned int face_index_a_plus = faces[face_index_a].face_indexes[(sides[side_index].vertice_index_in_face + 1) % 3];
-    unsigned int face_index_a_minus = faces[face_index_a].face_indexes[(sides[side_index].vertice_index_in_face + 2) % 3];
+    unsigned int face_index_a_plus = faces[face_index_a].face_indexes[(sides[side_index].vertice_index_in_face_a + 1) % 3];
+    unsigned int face_index_a_minus = faces[face_index_a].face_indexes[(sides[side_index].vertice_index_in_face_a + 2) % 3];
 
     // Adjacent faces of B
-    unsigned int face_index_b_plus = faces[face_index_b].face_indexes[(sides[side_index].vertice_index_in_face + 1) % 3];
-    unsigned int face_index_b_minus = faces[face_index_b].face_indexes[(sides[side_index].vertice_index_in_face + 2) % 3];
+    unsigned int face_index_b_plus = faces[face_index_b].face_indexes[(sides[side_index].vertice_index_in_face_b + 1) % 3];
+    unsigned int face_index_b_minus = faces[face_index_b].face_indexes[(sides[side_index].vertice_index_in_face_b + 2) % 3];
+
+    // Define intersection vertice
+    unsigned int from_vertice_index = faces[sides[side_index].face_a_index].vertice_indexes[(sides[side_index].vertice_index_in_face_a + 1) % 3];
+    unsigned int to_vertice_index = faces[sides[side_index].face_a_index].vertice_indexes[(sides[side_index].vertice_index_in_face_a + 2) % 3];
+    vertices[from_vertice_index].is_active = false;
+    vertices[to_vertice_index].is_active = false;
+
+    Vertice intersect_vertice = Vertice();
+    intersect_vertice.point = (vertices[from_vertice_index].point + vertices[to_vertice_index].point) * .5;
+    intersect_vertice.index = vertices.size();
+    intersect_vertice.has_face = true;
 
     // Desactive faces A and B
     faces[face_index_a].is_active = false;
     faces[face_index_b].is_active = false;
+
+    // --- Inform adjacent faces of each vertice side of new vertices
+    // From
+    int initial_face_index = vertices[from_vertice_index].face_index;
+    int current_face_index = initial_face_index;
+    do {
+        // Get root vertices in faces
+        int next = 0;
+        while (from_vertice_index != faces[current_face_index].vertice_indexes[next]) {
+            next = (next + 1) % 3;
+        }
+        // Change vertice in face
+        faces[current_face_index].vertice_indexes[next] = intersect_vertice.index;
+
+        // Get next vertice
+        next = (next + 1) % 3;
+
+        // Get face face
+        current_face_index = faces[current_face_index].face_indexes[next];
+    } while (current_face_index != initial_face_index);
+
+    // To
+    initial_face_index = vertices[to_vertice_index].face_index;
+    current_face_index = initial_face_index;
+
+    do {
+        // Get root vertices in faces
+        int next = 0;
+        while (to_vertice_index != faces[current_face_index].vertice_indexes[next]) {
+            next = (next + 1) % 3;
+        }
+        // Change vertice in face
+        faces[current_face_index].vertice_indexes[next] = intersect_vertice.index;
+
+        // Get next vertices
+        next = (next + 1) % 3;
+
+        // Get face face
+        current_face_index = faces[current_face_index].face_indexes[next];
+    } while (current_face_index != initial_face_index);
+
+    // Change up and down vertices
+    unsigned int not_used_index_face_a = 0;
+    while (faces[face_index_a].vertice_indexes[not_used_index_face_a] == from_vertice_index || faces[face_index_a].vertice_indexes[not_used_index_face_a] == to_vertice_index)
+    {
+        not_used_index_face_a += 1;
+    }
+    vertices[not_used_index_face_a].face_index = face_index_a_plus;
+
+    unsigned int not_used_index_face_b = 0;
+    while (faces[face_index_b].vertice_indexes[not_used_index_face_b] == from_vertice_index || faces[face_index_b].vertice_indexes[not_used_index_face_b] == to_vertice_index)
+    {
+        not_used_index_face_b += 1;
+    }
+    vertices[not_used_index_face_b].face_index = face_index_b_plus;
+
+    // --- Rewire
 
     // Remake connections faces - a_plus with a_minus
     unsigned int a_plus_to_a = 0;
@@ -514,9 +613,8 @@ void Mesh::collapse_edge(unsigned int side_index)
     {
         a_minus_to_a += 1;
     }
-
-//    faces[face_index_a_plus].face_indexes[a_plus_to_a] = face_index_a_minus;
-//    faces[face_index_a_minus].face_indexes[a_minus_to_a] = face_index_a_plus;
+    faces[face_index_a_plus].face_indexes[a_plus_to_a] = face_index_a_minus;
+    faces[face_index_a_minus].face_indexes[a_minus_to_a] = face_index_a_plus;
 
     // Remake connections faces - b_plus with b_minus
     unsigned int b_plus_to_b = 0;
@@ -529,21 +627,32 @@ void Mesh::collapse_edge(unsigned int side_index)
     {
         b_minus_to_b += 1;
     }
+    faces[face_index_b_plus].face_indexes[b_plus_to_b] = face_index_b_minus;
+    faces[face_index_b_minus].face_indexes[b_minus_to_b] = face_index_b_plus;
 
-//    faces[face_index_b_plus].face_indexes[b_plus_to_b] = face_index_b_minus;
-//    faces[face_index_b_minus].face_indexes[b_minus_to_b] = face_index_b_plus;
-
-    // Connect to intersect point
-//    unsigned int a_plus_to_p = 0;
-//    unsigned int a_minus_to_p = 0;
-//    while (faces[face_index_a_plus].face_indexes[a_plus_to_a] != face_index_a)
-//    {
-//        a_plus_to_a += 1;
-//    }
-//    while (faces[face_index_a_minus].face_indexes[a_minus_to_a] != face_index_a)
-//    {
-//        a_minus_to_a += 1;
-//    }
-
+    // Give a root to vertice and push it back
+    intersect_vertice.face_index = face_index_a_plus;
+    vertices.push_back(intersect_vertice);
 }
 
+
+//    qDebug() << QString("=== === === === ===");
+//    qDebug() << QString("=== === === === ===");
+//    qDebug() << QString("From vertice <%1> to vertice <%2>").arg(from_vertice_index).arg(to_vertice_index);
+//    qDebug() << QString("Between face (A) <%1> and face (B) <%2>").arg(face_index_a).arg(face_index_b);
+//    qDebug() << QString("Face A connected to: %1, %2, %3").arg(faces[face_index_a].vertice_indexes[0]).arg(faces[face_index_a].vertice_indexes[1]).arg(faces[face_index_a].vertice_indexes[2]);
+//    qDebug() << QString("Face B connected to: %1, %2, %3").arg(faces[face_index_b].vertice_indexes[0]).arg(faces[face_index_b].vertice_indexes[1]).arg(faces[face_index_b].vertice_indexes[2]);
+//    qDebug() << QString("Face A Plus  <%1> connected to faces: %2, %3, %4").arg(face_index_a_plus).arg(faces[face_index_a_plus].face_indexes[0]).arg(faces[face_index_a_plus].face_indexes[1]).arg(faces[face_index_a_plus].face_indexes[2]);
+//    qDebug() << QString("Face A Minus <%1> connected to faces: %2, %3, %4").arg(face_index_a_minus).arg(faces[face_index_a_minus].face_indexes[0]).arg(faces[face_index_a_minus].face_indexes[1]).arg(faces[face_index_a_minus].face_indexes[2]);
+//    qDebug() << QString("Face B Plus  <%1> connected to faces: %2, %3, %4").arg(face_index_b_plus).arg(faces[face_index_b_plus].face_indexes[0]).arg(faces[face_index_b_plus].face_indexes[1]).arg(faces[face_index_b_plus].face_indexes[2]);
+//    qDebug() << QString("Face B Minus <%1> connected to faces: %2, %3, %4").arg(face_index_b_minus).arg(faces[face_index_b_minus].face_indexes[0]).arg(faces[face_index_b_minus].face_indexes[1]).arg(faces[face_index_b_minus].face_indexes[2]);
+//    qDebug() << QString("Face A Plus  <%1> connected to vertices: %2, %3, %4").arg(face_index_a_plus).arg(faces[face_index_a_plus].vertice_indexes[0]).arg(faces[face_index_a_plus].vertice_indexes[1]).arg(faces[face_index_a_plus].vertice_indexes[2]);
+//    qDebug() << QString("Face A Minus <%1> connected to vertices: %2, %3, %4").arg(face_index_a_minus).arg(faces[face_index_a_minus].vertice_indexes[0]).arg(faces[face_index_a_minus].vertice_indexes[1]).arg(faces[face_index_a_minus].vertice_indexes[2]);
+//    qDebug() << QString("Face B Plus  <%1> connected to vertices: %2, %3, %4").arg(face_index_b_plus).arg(faces[face_index_b_plus].vertice_indexes[0]).arg(faces[face_index_b_plus].vertice_indexes[1]).arg(faces[face_index_b_plus].vertice_indexes[2]);
+//    qDebug() << QString("Face B Minus <%1> connected to vertices: %2, %3, %4").arg(face_index_b_minus).arg(faces[face_index_b_minus].vertice_indexes[0]).arg(faces[face_index_b_minus].vertice_indexes[1]).arg(faces[face_index_b_minus].vertice_indexes[2]);
+//qDebug() << QString("=== === === === ===");
+//qDebug() << QString("Face A Plus  <%1> connected to faces: %2, %3, %4").arg(face_index_a_plus).arg(faces[face_index_a_plus].face_indexes[0]).arg(faces[face_index_a_plus].face_indexes[1]).arg(faces[face_index_a_plus].face_indexes[2]);
+//qDebug() << QString("Face A Minus <%1> connected to faces: %2, %3, %4").arg(face_index_a_minus).arg(faces[face_index_a_minus].face_indexes[0]).arg(faces[face_index_a_minus].face_indexes[1]).arg(faces[face_index_a_minus].face_indexes[2]);
+//qDebug() << QString("Face B Plus  <%1> connected to faces: %2, %3, %4").arg(face_index_b_plus).arg(faces[face_index_b_plus].face_indexes[0]).arg(faces[face_index_b_plus].face_indexes[1]).arg(faces[face_index_b_plus].face_indexes[2]);
+//qDebug() << QString("Face B Minus <%1> connected to faces: %2, %3, %4").arg(face_index_b_minus).arg(faces[face_index_b_minus].face_indexes[0]).arg(faces[face_index_b_minus].face_indexes[1]).arg(faces[face_index_b_minus].face_indexes[2]);
+//qDebug() << QString("=== === === === ===");

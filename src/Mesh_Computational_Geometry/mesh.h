@@ -41,6 +41,8 @@ public:
     bool has_face = false;
     unsigned int face_index;
 
+    bool is_active = true;
+
     Point normal;
 
     Point laplacian;
@@ -74,8 +76,10 @@ class Side
 public:
     static bool compare(const Side&, const Side&);
 
-    unsigned int vertice_index_in_face;
-    unsigned int face_index;
+    unsigned int vertice_index_in_face_a;
+    unsigned int face_a_index;
+    unsigned int vertice_index_in_face_b;
+    unsigned int face_b_index;
     double squared_length;
 };
 
