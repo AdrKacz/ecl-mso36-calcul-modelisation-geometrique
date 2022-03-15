@@ -71,17 +71,17 @@ public:
     ~Face();
 };
 
-class Side
-{
-public:
-    static bool compare(const Side&, const Side&);
+//class Side
+//{
+//public:
+//    static bool compare(const Side&, const Side&);
 
-    unsigned int vertice_index_in_face_a;
-    unsigned int face_a_index;
-    unsigned int vertice_index_in_face_b;
-    unsigned int face_b_index;
-    double squared_length;
-};
+//    unsigned int vertice_index_in_face_a;
+//    unsigned int face_a_index;
+//    unsigned int vertice_index_in_face_b;
+//    unsigned int face_b_index;
+//    double squared_length;
+//};
 
 class Mesh
 {
@@ -89,6 +89,7 @@ class Mesh
   // (Q ou STL)Vector of faces
   // Those who do not know about STL Vectors should have a look at cplusplus.com examples
 public:
+    unsigned int reduce_step = 0;
     double faces_norm_factor = 1.;
     double vertices_norm_factor = 1.;
 
@@ -100,7 +101,7 @@ public:
     double faces_inv_difference_laplacian_norm;
     double faces_constance_term_laplacian_norm;
 
-    std::vector<Side> sides;
+//    std::vector<Side> sides;
     std::vector<Vertice> vertices;
     std::vector<Face> faces;
     std::unordered_map<QString, QString> face_map_queue;
@@ -120,12 +121,15 @@ public:
 
     // Space reduction
     void reduce();
-    void collapse_edge(unsigned int);
+    void find_edge(unsigned int&, unsigned int&);
+    unsigned int temp = 0;
+    void collapse_edge();
 };
 
 class GeometricWorld //Here used to create a singleton instance
 {
 private:
+//  void displaySide(unsigned int);
   bool use_face_color = true;
 
   bool hasReadFirstLine = false;

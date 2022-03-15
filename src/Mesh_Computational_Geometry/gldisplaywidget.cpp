@@ -100,12 +100,12 @@ void GLDisplayWidget::wheelEvent(QWheelEvent *event) {
 }
 
 void GLDisplayWidget::zoom_in() {
-    double stepZoom = 2.5;
+    double stepZoom = 1.;
     _Z = _Z + stepZoom;
 }
 
 void GLDisplayWidget::zoom_out() {
-    double stepZoom = 2.5;
+    double stepZoom = 1.;
     _Z = _Z - stepZoom;
 }
 
