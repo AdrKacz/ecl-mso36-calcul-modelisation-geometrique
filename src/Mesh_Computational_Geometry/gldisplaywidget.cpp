@@ -24,10 +24,6 @@ void GLDisplayWidget::initializeGL()
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_LIGHT0);
     glEnable(GL_COLOR_MATERIAL);
-
-    //** TP : To add....
-    // Construction of the GeometricWorld before it is displayed
-    // It can also be constructed following a signal (button)
 }
 
 void GLDisplayWidget::paintGL(){

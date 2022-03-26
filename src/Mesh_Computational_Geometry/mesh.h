@@ -71,18 +71,6 @@ public:
     ~Face();
 };
 
-//class Side
-//{
-//public:
-//    static bool compare(const Side&, const Side&);
-
-//    unsigned int vertice_index_in_face_a;
-//    unsigned int face_a_index;
-//    unsigned int vertice_index_in_face_b;
-//    unsigned int face_b_index;
-//    double squared_length;
-//};
-
 class Mesh
 {
   // (Q ou STL)Vector of vertices
