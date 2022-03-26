@@ -18,6 +18,16 @@ L'interface a les fonctionalités suivantes :
 
 # Comment exécuter le code ?
 
+## En mode développement
+
+1. Ouvrir le dossier dans **Qt Creator**
+2. Configurer l'exécution
+3. Lancer le programme
+
+## En mode utilisateur
+
+~~Lancer l'exécutable `InformatiqueGraphique`.~~
+
 # Chargement d'un maillage
 
 Un `mesh` est composé de :
@@ -53,6 +63,10 @@ FOR line in file:
                 ADD face TO queue AT side_key
 ```
 
+<p float="left" align="middle">
+    <img src="./visuals/load-mesh.png" width="90%">
+</p>
+
 # Courbure
 
 Pour mesurer la courbure, on mesure la normal en chaque `face` et chaque `vertice`. On mesure ensuite **la différence entre les normals**.
@@ -63,12 +77,24 @@ Cela revient à calculer le **laplacien** en chaque `face` et chaque `vertice`.
 
 ## Par faces
 
+<p float="left" align="middle">
+    <img src="./visuals/face-color.png" width="90%">
+</p>
+
 ## Par sommets
+
+<p float="left" align="middle">
+    <img src="./visuals/vertice-color.png" width="90%">
+</p>
 
 ## Possibilté de changer le seuil de sensibilté
 
 Les disparités dans les normales du **laplacien** sont importantes. On a donc du mal à observer tout le spectre de courbure sur la figure.
 
 Pour pallier à ce problème, on ajoute un *slider* permettant de sélectionner le **seuil de sensibilité** et ainsi mieux voir les petites variations de courbure.
+
+<p float="left" align="middle">
+    <img src="./visuals/adjust-limits.gif" width="90%">
+</p>
 
 # Réduction du nombre de sommets

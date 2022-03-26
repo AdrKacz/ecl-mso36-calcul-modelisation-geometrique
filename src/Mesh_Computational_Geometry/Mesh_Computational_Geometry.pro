@@ -13,7 +13,7 @@ TARGET = Mesh_Computational_Geometry
 TEMPLATE = app
 
 SOURCES += main.cpp\
-        mainwindow.cpp \
+    mainwindow.cpp \
     gldisplaywidget.cpp \
     mesh.cpp
 
