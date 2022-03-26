@@ -57,6 +57,7 @@ class Face
 public:
     unsigned int vertice_indexes[3];
     unsigned int face_indexes[3];
+    unsigned int index;
 
     bool is_active = true;
 
@@ -66,6 +67,7 @@ public:
     double laplacian_norm;
 
     void debug(int);
+    unsigned int get_local_vertice_index(unsigned int);
 
     Face();
     ~Face();

@@ -216,6 +216,7 @@ void GeometricWorld::input(QString line) {
             // Read always in the same order -> 0, 1, 2
             Face face = Face();
             int index = line_index - nb_vertices;
+            face.index = index;
 
             // Data structure - Store ONE Face in each Vertice
             face.vertice_indexes[0] = splitted_line[1].toInt();
@@ -343,6 +344,21 @@ void Face::debug(int index)
     qDebug() << "---";
 }
 
+unsigned int Face::get_local_vertice_index(unsigned int global_vertice_index) {
+    for (unsigned int i = 0 ; i < 3 ; i++) {
+        if (vertice_indexes[i] == global_vertice_index) {
+            return i;
+        }
+    }
+     qDebug() << QString("ERROR: Vertices <%1> not found in face <%2>: (%3, %4, %5)")
+                .arg(global_vertice_index)
+                .arg(index)
+                .arg(vertice_indexes[0])
+                .arg(vertice_indexes[1])
+                .arg(vertice_indexes[2]);
+    return -1;
+}
+
 // ===== ===== ===== ===== =====
 // ===== ===== ===== ===== ===== Mesh
 // ===== ===== ===== ===== =====
@@ -468,14 +484,17 @@ void Mesh::find_edge(unsigned int& face_index, unsigned int& vertices_local_inde
     do {
         face_index = temp;
         vertices_local_index = 0;
+        while (vertices_local_index < 3 && !vertices[faces[face_index].vertice_indexes[vertices_local_index]].is_active) {
+            vertices_local_index++;
+        }
         temp++;
-    } while (!faces[face_index].is_active);
+    } while (!faces[face_index].is_active && vertices_local_index < 3);
 }
 
 void Mesh::collapse_edge() {
     unsigned int index_face, local_index_vertices;
     find_edge(index_face, local_index_vertices);
-    qDebug() << QString("F: <%1>, V: <%2>").arg(index_face).arg(local_index_vertices);
+    qDebug() << QString("Collapse edge at face %1 (%2 / 3) ").arg(index_face).arg(local_index_vertices + 1);
 
     // Faces to delete
     unsigned int index_face_up, index_face_down;
@@ -485,12 +504,49 @@ void Mesh::collapse_edge() {
     unsigned int index_vertices_a, index_vertices_b;
     // Local vertices
     unsigned int local_index_vertices_up_i, local_index_vertices_up_j, local_index_vertices_down_i, local_index_vertices_down_j;
-
     // Get index value UP
     index_face_up = index_face;
-    unsigned int a = 0;
     local_index_vertices_up_i = (local_index_vertices + 1) % 3;
     local_index_vertices_up_j = (local_index_vertices + 2) % 3;
-    index_face_up_a = faces[index_face_up].face_indexes[local_index_vertices_up_i];
-    index_face_up_b = faces[index_face_up].face_indexes[local_index_vertices_up_j];
+    index_face_up_a = faces[index_face_up].face_indexes[local_index_vertices_up_j];
+    index_face_up_b = faces[index_face_up].face_indexes[local_index_vertices_up_i];
+
+    // Edge vertices index
+    index_vertices_a = faces[index_face_up].vertice_indexes[local_index_vertices_up_i];
+    index_vertices_b = faces[index_face_up].vertice_indexes[local_index_vertices_up_j];
+
+    // Get index value DOWN
+    index_face_down = faces[index_face].face_indexes[local_index_vertices];
+    local_index_vertices_down_i = faces[index_face_down].get_local_vertice_index(index_vertices_a);
+    local_index_vertices_down_j = faces[index_face_down].get_local_vertice_index(index_vertices_b);
+    index_face_down_a = faces[index_face_down].face_indexes[local_index_vertices_down_j];
+    index_face_down_b = faces[index_face_down].face_indexes[local_index_vertices_down_i];
+    // Change neighbours
+    unsigned int index_face_up_a_local_index = (faces[index_face_up_a].get_local_vertice_index(index_vertices_a) + 2) % 3;
+    faces[index_face_up_a].face_indexes[index_face_up_a_local_index] = index_face_up_b;
+    unsigned int index_face_up_b_local_index = (faces[index_face_up_b].get_local_vertice_index(index_vertices_b) + 1) % 3;
+    faces[index_face_up_b].face_indexes[index_face_up_b_local_index] = index_face_up_a;
+
+    unsigned int index_face_down_a_local_index = (faces[index_face_down_a].get_local_vertice_index(index_vertices_a) + 1) % 3;
+    faces[index_face_down_a].face_indexes[index_face_down_a_local_index] = index_face_down_b;
+    unsigned int index_face_down_b_local_index = (faces[index_face_down_b].get_local_vertice_index(index_vertices_b) + 2) % 3;
+    faces[index_face_down_b].face_indexes[index_face_down_b_local_index] = index_face_down_a;
+
+    // Change faces links
+    unsigned int current_face_index = index_face_down_b;
+    unsigned int index_local;
+    do {
+        qDebug() << QString("     Change face %1 ( -> %2)").arg(current_face_index).arg(index_face_up_a);
+        index_local = faces[current_face_index].get_local_vertice_index(index_vertices_b);
+        faces[current_face_index].vertice_indexes[index_local] = index_vertices_a;
+        current_face_index = faces[current_face_index].face_indexes[(index_local + 1) % 3];
+    } while(current_face_index != index_face_up_a);
+
+    // Move vertice
+    vertices[index_vertices_a].point = (vertices[index_vertices_a].point + vertices[index_vertices_b].point) / 2;
+
+    // Deactivate faces
+    faces[index_face_up].is_active = false;
+    faces[index_face_down].is_active = false;
+    vertices[index_vertices_b].is_active = false;
 }
