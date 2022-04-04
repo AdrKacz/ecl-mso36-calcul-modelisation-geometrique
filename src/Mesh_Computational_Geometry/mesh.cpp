@@ -504,6 +504,7 @@ void Mesh::collapse_edge() {
     unsigned int index_vertices_a, index_vertices_b;
     // Local vertices
     unsigned int local_index_vertices_up_i, local_index_vertices_up_j, local_index_vertices_down_i, local_index_vertices_down_j;
+    
     // Get index value UP
     index_face_up = index_face;
     local_index_vertices_up_i = (local_index_vertices + 1) % 3;
@@ -521,6 +522,7 @@ void Mesh::collapse_edge() {
     local_index_vertices_down_j = faces[index_face_down].get_local_vertice_index(index_vertices_b);
     index_face_down_a = faces[index_face_down].face_indexes[local_index_vertices_down_j];
     index_face_down_b = faces[index_face_down].face_indexes[local_index_vertices_down_i];
+
     // Change neighbours
     unsigned int index_face_up_a_local_index = (faces[index_face_up_a].get_local_vertice_index(index_vertices_a) + 2) % 3;
     faces[index_face_up_a].face_indexes[index_face_up_a_local_index] = index_face_up_b;
