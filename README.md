@@ -51,7 +51,7 @@ FOR line in file:
             IF NOT v.face_index:
                 v.face_index = face.index
         
-        FOFR i IN 1..3:
+        FOR i IN 1..3:
             next_index = face.vertice_indexes[(i + 1) % 3].index
             next_next_index = face.vertice_indexes[(i + 2) % 3].index
             side_key = sorted(next_index, next_next_index)
@@ -98,3 +98,59 @@ Pour pallier à ce problème, on ajoute un *slider* permettant de sélectionner 
 </p>
 
 # Réduction du nombre de sommets
+
+> Malheuresement j'ai eu un problème avec mon ordinateur cette semaine. Ce qui m'a forcé à réinstaller la plupart de mes logiciels, dont **Qt**. Impossible de compiler le programme depuis. L'ordinateur de Maxime ne pouvait déjà pas faire tourner Qt. Je n'ai donc pas eu le temps de faire des captures d'écran de la *réduction du nombre de sommets*.
+
+Pour réduire le nombre de sommets on supprime les arrêtes une par un nombre de fois prédéfini.
+
+<p float="left" align="middle">
+    <img src="./visuals/edge-collapse.gif" width="90%">
+</p>
+
+Supprimer une arrête consiste à :
+1. trouver ses faces adjacentes **I** et **J**,
+2. trouver les faces adjacentes **A**, **B**, **C**, et **D** de **I** et **J**,
+3. Relier **A**, **B**, **C**, et **D**
+4. Le point restant de l'arrête supprimé au milieu.
+
+```c
+// sommet_oppose en coordonnée local {0, 1, 2}
+FUNCTION supprimer_arrete (face, local_sommet_oppose):
+    // === TROUVER LES FACES ADJACENTES ===
+    // Face haute
+    face_haute = face
+
+    local_sommet_droit = (local_sommet_oppose + 1) % 3
+    local_sommet_gauche = (local_sommet_oppose + 2) % 3
+
+    face_haute_droite = face_haute.face_voisines[local_sommet_droit]
+    face_haute_gauche = face_haute.face_voisines[local_sommet_gauche]
+
+    // Ces deux sommets sont communs aux deux faces (sommets de l'arrête)
+    sommet_droit = face.sommets_voisin[sommet_droit]
+    sommet_gauche = face.sommets_voisin[sommet_gauche]
+
+    // Face basse
+    face_basse = face_haute.faces_voisines[sommet_oppose]
+    
+    local_sommet_droit = face_basse.trouver_sommets_dans_voisins(sommet_droit)
+    local_sommet_gauche = face_basse.trouver_sommets_dans_voisins(sommet_gauche)
+
+    // On inverse parce que les faces sont opposées
+    face_basse_droite = face_basse.faces_voisines[local_sommet_gauche]
+    face_basse_gauche = face_basse.faces_voisines[local_sommet_droit]
+
+    // === RELIER LES FACES ENTRES ELLES ===
+    // On tourne autour du sommet_gauche pour tout attacher au sommet_droit
+    face = face_haute
+    FAIRE:
+        local_sommet_gauche = face.trouver_sommets_dans_voisins(sommet_gauche)
+        face.sommet_voisins[local_sommet_gauche] = sommet_droit
+
+        face = face.face_voisines[(local_sommet_gauche + 1) % 3]
+    TANT QUE face DIFFERENTE face_haute
+
+
+    // === DEPLACER LE SOMMETS RESTANTS ===
+    sommets[sommet_droit] = (sommets[sommet_droit] + sommets[sommet_gauche]) / 2
+```
