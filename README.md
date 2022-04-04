@@ -13,7 +13,7 @@ L'interface a les fonctionalités suivantes :
     - Par sommets
     - *Possibilité de changer le seuil de sensibilité*
 - Réduction du nombre de sommets
-- ~~Ajout de nouveaux sommets~~
+- Ajout de nouveaux sommets
 - ~~Transformation en une triangulation de Delaunay~~
 
 # Comment exécuter le code ?
@@ -69,11 +69,11 @@ FOR line in file:
 
 # Courbure
 
-Pour mesurer la courbure, on mesure la normal en chaque `face` et chaque `vertice`. On mesure ensuite **la différence entre les normals**.
+Pour mesurer la courbure, on mesure la normal en chaque `face` et chaque `vertice`. On mesure ensuite **la différence entre les normales**.
 
 Cela revient à calculer le **laplacien** en chaque `face` et chaque `vertice`.
 
-> On n'a pas besoin de calculer le **laplacien** en chaque `face` et le **laplacient** en chaque `vertice`. Calculer le **laplacien** en chaque `face` permet d'afficher la courbure par `face`, qui est cabossée. C'est pourquoi on lisse la courbure avec le calcul du **laplacien** en chaque `vertice`.
+> On n'a pas besoin de calculer le **laplacien** en chaque `face` et le **laplacient** en chaque `vertice`. Calculer le **laplacien** en chaque `face` permet d'afficher la courbure par `face`, qui est **cabossée**. C'est pourquoi on lisse la courbure avec le calcul du **laplacien** en chaque `vertice`.
 
 ## Par faces
 
@@ -91,7 +91,7 @@ Cela revient à calculer le **laplacien** en chaque `face` et chaque `vertice`.
 
 Les disparités dans les normales du **laplacien** sont importantes. On a donc du mal à observer tout le spectre de courbure sur la figure.
 
-Pour pallier à ce problème, on ajoute un *slider* permettant de sélectionner le **seuil de sensibilité** et ainsi mieux voir les petites variations de courbure.
+Pour pallier à ce problème, on ajoute un *slider* permettant de sélectionner le **seuil de sensibilité** et ainsi de mieux voir les petites variations de courbure.
 
 <p float="left" align="middle">
     <img src="./visuals/adjust-limits.gif" width="90%">
@@ -101,7 +101,7 @@ Pour pallier à ce problème, on ajoute un *slider* permettant de sélectionner 
 
 > Malheuresement j'ai eu un problème avec mon ordinateur cette semaine. Ce qui m'a forcé à réinstaller la plupart de mes logiciels, dont **Qt**. Impossible de compiler le programme depuis. L'ordinateur de Maxime ne pouvait déjà pas faire tourner Qt. Je n'ai donc pas eu le temps de faire des captures d'écran de la *réduction du nombre de sommets*.
 
-Pour réduire le nombre de sommets on supprime les arrêtes une par un nombre de fois prédéfini.
+Pour réduire le nombre de sommets on supprime les arrêtes une par, un nombre de fois prédéfini.
 
 <p float="left" align="middle">
     <img src="./visuals/edge-collapse.gif" width="90%">
@@ -131,20 +131,20 @@ FUNCTION supprimer_arrete (face, local_sommet_oppose):
     sommet_gauche = face.sommets_voisin[sommet_gauche]
 
     // Face basse
-    face_basse = face_haute.faces_voisines[sommet_oppose]
+    face_basse = face_haute.face_voisines[sommet_oppose]
     
-    local_sommet_droit = face_basse.trouver_sommets_dans_voisins(sommet_droit)
-    local_sommet_gauche = face_basse.trouver_sommets_dans_voisins(sommet_gauche)
+    local_sommet_droit = face_basse.trouver_sommet_dans_voisins(sommet_droit)
+    local_sommet_gauche = face_basse.trouver_sommet_dans_voisins(sommet_gauche)
 
     // On inverse parce que les faces sont opposées
-    face_basse_droite = face_basse.faces_voisines[local_sommet_gauche]
-    face_basse_gauche = face_basse.faces_voisines[local_sommet_droit]
+    face_basse_droite = face_basse.face_voisines[local_sommet_gauche]
+    face_basse_gauche = face_basse.face_voisines[local_sommet_droit]
 
     // === RELIER LES FACES ENTRES ELLES ===
     // On tourne autour du sommet_gauche pour tout attacher au sommet_droit
     face = face_haute
     FAIRE:
-        local_sommet_gauche = face.trouver_sommets_dans_voisins(sommet_gauche)
+        local_sommet_gauche = face.trouver_sommet_dans_voisins(sommet_gauche)
         face.sommet_voisins[local_sommet_gauche] = sommet_droit
 
         face = face.face_voisines[(local_sommet_gauche + 1) % 3]
