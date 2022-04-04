@@ -87,11 +87,12 @@ void GeometricWorld::drawMesh() {
     if (_mesh.faces.size() <= 0) {
         return;
     }
-
+    unsigned int count = 0;
     for (unsigned int i = 0 ; i < _mesh.faces.size() ; i++) {
         if (!_mesh.faces[i].is_active) {
             continue;
         }
+        count++;
         // From Triangles
         glColor3d(1,1,1);
         for (unsigned int j = 0 ; j < 3 ; j++)
@@ -101,26 +102,27 @@ void GeometricWorld::drawMesh() {
             glPointDraw(_mesh.vertices[_mesh.faces[i].vertice_indexes[(j + 1) % 3]].point);
             glEnd();
         }
-            if (use_face_color) {
-                Point color = _mesh.laplacian_norm_to_color(_mesh.faces[i].laplacian_norm);
+        if (use_face_color) {
+            Point color = _mesh.laplacian_norm_to_color(_mesh.faces[i].laplacian_norm);
+            glColor3d(color._x, color._y, color._z);
+            glBegin(GL_TRIANGLES);
+            glPointDraw(_mesh.vertices[_mesh.faces[i].vertice_indexes[0]].point);
+            glPointDraw(_mesh.vertices[_mesh.faces[i].vertice_indexes[1]].point);
+            glPointDraw(_mesh.vertices[_mesh.faces[i].vertice_indexes[2]].point);
+            glEnd();
+        } else {
+            glBegin(GL_TRIANGLES);
+            for (unsigned int j = 0 ; j < 3 ; j++)
+            {
+                Point color = _mesh.laplacian_norm_to_color(_mesh.vertices[_mesh.faces[i].vertice_indexes[j]].laplacian_norm);
                 glColor3d(color._x, color._y, color._z);
-                glBegin(GL_TRIANGLES);
-                glPointDraw(_mesh.vertices[_mesh.faces[i].vertice_indexes[0]].point);
-                glPointDraw(_mesh.vertices[_mesh.faces[i].vertice_indexes[1]].point);
-                glPointDraw(_mesh.vertices[_mesh.faces[i].vertice_indexes[2]].point);
-                glEnd();
-            } else {
-                glBegin(GL_TRIANGLES);
-                for (unsigned int j = 0 ; j < 3 ; j++)
-                {
-                    Point color = _mesh.laplacian_norm_to_color(_mesh.vertices[_mesh.faces[i].vertice_indexes[j]].laplacian_norm);
-                    glColor3d(color._x, color._y, color._z);
-                    glPointDraw(_mesh.vertices[_mesh.faces[i].vertice_indexes[j]].point);
+                glPointDraw(_mesh.vertices[_mesh.faces[i].vertice_indexes[j]].point);
 
-                }
-                glEnd();
             }
+            glEnd();
+        }
     }
+    qDebug() << QString("Number of face: %1").arg(count);
 }
 
 //Example with a wireframe bBox
@@ -491,64 +493,90 @@ void Mesh::find_edge(unsigned int& face_index, unsigned int& vertices_local_inde
     } while (!faces[face_index].is_active && vertices_local_index < 3);
 }
 
-void Mesh::collapse_edge() {
-    unsigned int index_face, local_index_vertices;
-    find_edge(index_face, local_index_vertices);
-    qDebug() << QString("Collapse edge at face %1 (%2 / 3) ").arg(index_face).arg(local_index_vertices + 1);
+unsigned int Mesh::get_id_local_sommet(unsigned int id_face, unsigned int id_sommet){
+    //on trouve l'id local
+    int i;
+    for(i = 0 ; i < 3; i++){
+        if(faces[id_face].vertice_indexes[i] == id_sommet)
+            break;
+    }
+    return i;
+}
 
-    // Faces to delete
-    unsigned int index_face_up, index_face_down;
-    // Adjacent Faces
-    unsigned int index_face_up_a, index_face_up_b, index_face_down_a, index_face_down_b;
-    // Edges vertices
+void Mesh::find_shortest_edge(unsigned int& face_id, unsigned int& id_sommet_oppose){
+    float min_length = 10000;
+    for(unsigned int i = 0; i < faces.size() ; i++){
+        if(faces[i].is_active)
+        for(unsigned int j = 0; j < 3; j++){
+            float edge_length = (vertices[faces[i].vertice_indexes[j]].point - vertices[faces[i].vertice_indexes[(j + 1) % 3]].point).norm();
+            if(edge_length < min_length){
+                face_id = i;
+                id_sommet_oppose = (j + 2) % 3;
+                min_length = edge_length;
+            }
+        }
+        if(min_length < 0.001){
+            break;
+        }
+    }
+}
+
+void Mesh::collapse_edge(){
+    unsigned int id_face, id_local_sommet_oppose;
+    find_shortest_edge(id_face, id_local_sommet_oppose);
+
+    unsigned int index_face_down, index_face_up;
+    unsigned int index_face_down_right, index_face_down_left, index_face_up_right, index_face_up_left;
     unsigned int index_vertices_a, index_vertices_b;
-    // Local vertices
-    unsigned int local_index_vertices_up_i, local_index_vertices_up_j, local_index_vertices_down_i, local_index_vertices_down_j;
-    
-    // Get index value UP
-    index_face_up = index_face;
-    local_index_vertices_up_i = (local_index_vertices + 1) % 3;
-    local_index_vertices_up_j = (local_index_vertices + 2) % 3;
-    index_face_up_a = faces[index_face_up].face_indexes[local_index_vertices_up_j];
-    index_face_up_b = faces[index_face_up].face_indexes[local_index_vertices_up_i];
+    unsigned int index_vertice_down_right, index_vertice_down_left, index_vertice_up_right, index_vertice_up_left;
 
-    // Edge vertices index
-    index_vertices_a = faces[index_face_up].vertice_indexes[local_index_vertices_up_i];
-    index_vertices_b = faces[index_face_up].vertice_indexes[local_index_vertices_up_j];
+    // Up
+    index_face_up = id_face;
+    index_vertice_up_right = (id_local_sommet_oppose + 1) % 3;
+    index_vertice_up_left = (id_local_sommet_oppose + 2) % 3;
+    index_face_up_right = faces[index_face_up].face_indexes[index_vertice_up_left];
+    index_face_up_left = faces[index_face_up].face_indexes[index_vertice_up_right];
 
-    // Get index value DOWN
-    index_face_down = faces[index_face].face_indexes[local_index_vertices];
-    local_index_vertices_down_i = faces[index_face_down].get_local_vertice_index(index_vertices_a);
-    local_index_vertices_down_j = faces[index_face_down].get_local_vertice_index(index_vertices_b);
-    index_face_down_a = faces[index_face_down].face_indexes[local_index_vertices_down_j];
-    index_face_down_b = faces[index_face_down].face_indexes[local_index_vertices_down_i];
+    // Vertices
+    index_vertices_a = faces[index_face_up].vertice_indexes[index_vertice_up_right];
+    index_vertices_b = faces[index_face_up].vertice_indexes[index_vertice_up_left];
 
-    // Change neighbours
-    unsigned int index_face_up_a_local_index = (faces[index_face_up_a].get_local_vertice_index(index_vertices_a) + 2) % 3;
-    faces[index_face_up_a].face_indexes[index_face_up_a_local_index] = index_face_up_b;
-    unsigned int index_face_up_b_local_index = (faces[index_face_up_b].get_local_vertice_index(index_vertices_b) + 1) % 3;
-    faces[index_face_up_b].face_indexes[index_face_up_b_local_index] = index_face_up_a;
+    // Down
+    index_face_down = faces[index_face_up].face_indexes[id_local_sommet_oppose];
+    index_vertice_down_right = get_id_local_sommet(index_face_down, index_vertices_a);
+    index_vertice_down_left = get_id_local_sommet(index_face_down, index_vertices_b);
+    index_face_down_right = faces[index_face_down].face_indexes[index_vertice_down_left];
+    index_face_down_left = faces[index_face_down].face_indexes[index_vertice_down_right];
 
-    unsigned int index_face_down_a_local_index = (faces[index_face_down_a].get_local_vertice_index(index_vertices_a) + 1) % 3;
-    faces[index_face_down_a].face_indexes[index_face_down_a_local_index] = index_face_down_b;
-    unsigned int index_face_down_b_local_index = (faces[index_face_down_b].get_local_vertice_index(index_vertices_b) + 2) % 3;
-    faces[index_face_down_b].face_indexes[index_face_down_b_local_index] = index_face_down_a;
+    // Rewire adjacents faces
+    faces[index_face_up_right].face_indexes[(get_id_local_sommet(index_face_up_right, index_vertices_a) + 2) % 3] = index_face_up_left;
+    faces[index_face_up_left].face_indexes[(get_id_local_sommet(index_face_up_left, index_vertices_b) + 1) % 3] = index_face_up_right;
+    faces[index_face_down_right].face_indexes[(get_id_local_sommet(index_face_down_right, index_vertices_a) + 1) % 3] = index_face_down_left;
+    faces[index_face_down_left].face_indexes[(get_id_local_sommet(index_face_down_left, index_vertices_b) + 2) % 3] = index_face_down_right;
 
-    // Change faces links
-    unsigned int current_face_index = index_face_down_b;
-    unsigned int index_local;
-    do {
-        qDebug() << QString("     Change face %1 ( -> %2)").arg(current_face_index).arg(index_face_up_a);
-        index_local = faces[current_face_index].get_local_vertice_index(index_vertices_b);
-        faces[current_face_index].vertice_indexes[index_local] = index_vertices_a;
-        current_face_index = faces[current_face_index].face_indexes[(index_local + 1) % 3];
-    } while(current_face_index != index_face_up_a);
 
-    // Move vertice
-    vertices[index_vertices_a].point = (vertices[index_vertices_a].point + vertices[index_vertices_b].point) / 2;
+    // Rewire to correct ertices
+    unsigned int current_face = index_face_down_left;
+    unsigned int id_local_sommet_s2;
+    int i = 0;
+    do{
+        i++;
+        if(i > 32){
+            break;
+        }
+        id_local_sommet_s2 = get_id_local_sommet(current_face,index_vertices_b);
+        faces[current_face].vertice_indexes[id_local_sommet_s2] = index_vertices_a;
 
-    // Deactivate faces
+        current_face = faces[current_face].face_indexes[(id_local_sommet_s2+1)%3];
+
+    }while(current_face != index_face_up_right);
+
+    // Move vertice rewired
+    vertices[index_vertices_a].point = (vertices[index_vertices_a].point + vertices[index_vertices_b].point)/2;
+
+    // Deactive unused resources
     faces[index_face_up].is_active = false;
     faces[index_face_down].is_active = false;
     vertices[index_vertices_b].is_active = false;
+
 }

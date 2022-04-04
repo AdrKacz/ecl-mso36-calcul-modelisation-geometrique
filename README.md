@@ -95,7 +95,12 @@ Pour pallier à ce problème, on ajoute un *slider* permettant de sélectionner 
 
 # Réduction du nombre de sommets
 
-> Malheuresement j'ai eu un problème avec mon ordinateur cette semaine. Ce qui m'a forcé à réinstaller la plupart de mes logiciels, dont **Qt**. Impossible de compiler le programme depuis. L'ordinateur de Maxime ne pouvait déjà pas faire tourner Qt. Je n'ai donc pas eu le temps de faire des captures d'écran de la *réduction du nombre de sommets*.
+<p float="left" align="middle">
+    <img src="./visuals/reduce-0.png" width="30%">
+    <img src="./visuals/reduce-8000.png" width="30%">
+    <img src="./visuals/reduce-80000.png" width="30%">
+</p>
+
 
 Pour réduire le nombre de sommets on supprime les arrêtes une par, un nombre de fois prédéfini.
 

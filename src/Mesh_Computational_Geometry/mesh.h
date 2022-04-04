@@ -106,6 +106,8 @@ public:
     void compute_vertices_normal();
     void compute_faces_laplacian();
     void compute_vertices_laplacian();
+    unsigned int get_id_local_sommet(unsigned int, unsigned int);
+    void find_shortest_edge(unsigned int&, unsigned int&);
 
     Point laplacian_norm_to_color(double);
 
