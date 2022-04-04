@@ -111,7 +111,7 @@ Supprimer une arrête consiste à :
 1. trouver ses faces adjacentes **I** et **J**,
 2. trouver les faces adjacentes **A**, **B**, **C**, et **D** de **I** et **J**,
 3. Relier **A**, **B**, **C**, et **D**
-4. Le point restant de l'arrête supprimé au milieu.
+4. Placer le point restant de l'arrête supprimée au milieu.
 
 ```c
 // sommet_oppose en coordonnée local {0, 1, 2}
