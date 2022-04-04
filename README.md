@@ -95,6 +95,8 @@ Pour pallier à ce problème, on ajoute un *slider* permettant de sélectionner 
 
 # Réduction du nombre de sommets
 
+> De gauche à droite: totalité des sommets - réduction de **4,000** sommets - réduction de **40,000** sommets
+
 <p float="left" align="middle">
     <img src="./visuals/reduce-0.png" width="30%">
     <img src="./visuals/reduce-8000.png" width="30%">
