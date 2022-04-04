@@ -24,6 +24,8 @@ L'interface a les fonctionalités suivantes :
 2. Configurer l'exécution
 3. Lancer le programme
 
+> Le code source est dans le dossier `./src/Mesh_Computational_Geometry`. La gros du travail est dans le fichier `./src/Mesh_Computational_Geometry/mesh.cpp`
+
 ## En mode utilisateur
 
 ~~Lancer l'exécutable `InformatiqueGraphique`.~~
